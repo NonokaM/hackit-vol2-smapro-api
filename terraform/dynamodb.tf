@@ -1,5 +1,5 @@
 resource "aws_dynamodb_table" "hackit_table" {
-  name           = "hackit_table"
+  name           = "hackit_questions_table"
   billing_mode   = "PROVISIONED"
   read_capacity  = 5
   write_capacity = 5
@@ -7,6 +7,6 @@ resource "aws_dynamodb_table" "hackit_table" {
 
   attribute {
     name = "id"
-    type = "S"
+    type = "N"
   }
 }
