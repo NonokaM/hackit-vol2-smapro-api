@@ -10,8 +10,6 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -65,12 +63,12 @@ func getQuestions(ctx context.Context, request events.APIGatewayProxyRequest) (e
 	svc := dynamodb.NewFromConfig(cfg)
 
 	// DynamoDBの項目を取得
-    result, err := svc.GetItem(ctx, &dynamodb.GetItemInput{
-        TableName: aws.String("hackit_questions_table"),
-        Key: map[string]types.AttributeValue{
-            "id": &types.AttributeValueMemberN{Value: strconv.Itoa(id)},
-        },
-    })
+	result, err := svc.GetItem(ctx, &dynamodb.GetItemInput{
+		TableName: aws.String("hackit_questions_table"),
+		Key: map[string]types.AttributeValue{
+			"id": &types.AttributeValueMemberN{Value: strconv.Itoa(id)},
+		},
+	})
 	if err != nil {
 		return serverError(err)
 	}
