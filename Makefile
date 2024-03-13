@@ -7,7 +7,7 @@ tools-install:
 ## fmt
 .PHONY: fmt
 fmt:
-	goimports -w -local "go-college" cmd/
+	goimports -w cmd/
 	gofmt -s -w cmd/
 
 ## lint
