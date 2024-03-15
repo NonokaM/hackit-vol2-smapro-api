@@ -97,14 +97,6 @@ func serverError(err error) (events.APIGatewayProxyResponse, error) {
 	}, nil
 }
 
-// func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-// 	response := events.APIGatewayProxyResponse{
-// 		StatusCode: 200,
-// 		Body:       "\"Hello from Lambda!\"",
-// 	}
-// 	return response, nil
-// }
-
 func main() {
 	lambda.Start(handleRequest)
 }
