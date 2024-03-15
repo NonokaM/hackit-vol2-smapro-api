@@ -7,6 +7,6 @@ RUN go mod download
 COPY cmd/main.go .
 RUN GOARCH=amd64 go build -tags lambda.norpc -o main main.go
 # Copy artifacts to a clean image
-FROM --platform=linux/arm64 public.ecr.aws/lambda/provided:al2023
+FROM --platform=linux/amd64 public.ecr.aws/lambda/provided:al2023
 COPY --from=build /hackit/main ./main
 ENTRYPOINT [ "./main" ]
