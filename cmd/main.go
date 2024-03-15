@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -47,12 +49,25 @@ func handleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 }
 
 func getQuestions(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// クエリパラメータからIDを取得する
-	idStr := request.QueryStringParameters["id"]
+	difficulty := request.QueryStringParameters["difficulty"]
+	if difficulty == "" {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusBadRequest,
+			Body:       "Bad Request: Missing difficulty parameter",
+		}, nil
+	}
 
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		return serverError(err)
+	limitStr := request.QueryStringParameters["limit"]
+	if limitStr == "" {
+		limitStr = "3" // デフォルト値
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusBadRequest,
+			Body:       "Bad Request: Invalid number of questions",
+		}, nil
 	}
 
 	cfg, err := config.LoadDefaultConfig(ctx)
@@ -62,32 +77,78 @@ func getQuestions(ctx context.Context, request events.APIGatewayProxyRequest) (e
 
 	svc := dynamodb.NewFromConfig(cfg)
 
-	// DynamoDBの項目を取得
-	result, err := svc.GetItem(ctx, &dynamodb.GetItemInput{
-		TableName: aws.String("hackit_questions_table"),
-		Key: map[string]types.AttributeValue{
-			"id": &types.AttributeValueMemberN{Value: strconv.Itoa(id)},
+	// IDのみを取得
+	queryInput := &dynamodb.QueryInput{
+		TableName:              aws.String("hackit_questions_table"),
+		IndexName:              aws.String("difficulty-index"),
+		KeyConditionExpression: aws.String("difficulty = :difficulty"),
+		ProjectionExpression:   aws.String("id"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":difficulty": &types.AttributeValueMemberS{Value: difficulty},
 		},
-	})
+	}
+
+	result, err := svc.Query(ctx, queryInput)
 	if err != nil {
 		return serverError(err)
 	}
 
-	var question Question
-	err = attributevalue.UnmarshalMap(result.Item, &question)
-	if err != nil {
-		return serverError(err)
+	var questionIDs []int
+	for _, item := range result.Items {
+		var q Question
+		err = attributevalue.UnmarshalMap(item, &q)
+		if err != nil {
+			return serverError(err)
+		}
+		questionIDs = append(questionIDs, q.ID)
 	}
 
-	questionJSON, err := json.Marshal(question)
+	// ランダムにIDを選択
+	selectedIDs := selectRandomIDs(questionIDs, limit)
+
+	// 選択されたIDに基づいて完全な問題データを取得
+	var selectedQuestions []Question
+	for _, id := range selectedIDs {
+		getItemInput := &dynamodb.GetItemInput{
+			TableName: aws.String("hackit_questions_table"),
+			Key: map[string]types.AttributeValue{
+				"id": &types.AttributeValueMemberN{Value: strconv.Itoa(id)},
+			},
+		}
+		result, err := svc.GetItem(ctx, getItemInput)
+		if err != nil {
+			return serverError(err)
+		}
+
+		var question Question
+		err = attributevalue.UnmarshalMap(result.Item, &question)
+		if err != nil {
+			return serverError(err)
+		}
+
+		selectedQuestions = append(selectedQuestions, question)
+	}
+
+	questionsJSON, err := json.Marshal(selectedQuestions)
 	if err != nil {
 		return serverError(err)
 	}
 
 	return events.APIGatewayProxyResponse{
-		Body:       string(questionJSON),
+		Body:       string(questionsJSON),
 		StatusCode: http.StatusOK,
 	}, nil
+}
+
+func selectRandomIDs(ids []int, count int) []int {
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(ids), func(i, j int) { ids[i], ids[j] = ids[j], ids[i] })
+
+	if len(ids) < count {
+		count = len(ids)
+	}
+
+	return ids[:count]
 }
 
 func serverError(err error) (events.APIGatewayProxyResponse, error) {
@@ -96,14 +157,6 @@ func serverError(err error) (events.APIGatewayProxyResponse, error) {
 		Body:       fmt.Sprintf("Internal Server Error: %v", err),
 	}, nil
 }
-
-// func handler(ctx context.Context, event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-// 	response := events.APIGatewayProxyResponse{
-// 		StatusCode: 200,
-// 		Body:       "\"Hello from Lambda!\"",
-// 	}
-// 	return response, nil
-// }
 
 func main() {
 	lambda.Start(handleRequest)
