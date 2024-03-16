@@ -32,11 +32,16 @@ type Question struct {
 }
 
 func handleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	headers := map[string]string{
+		"Access-Control-Allow-Origin": "*",
+	}
+
 	switch request.Path {
 	case "/":
 		return events.APIGatewayProxyResponse{
 			Body:       "Hello World",
 			StatusCode: http.StatusOK,
+			Headers:    headers,
 		}, nil
 	case "/questions":
 		return getQuestions(ctx, request)
@@ -44,6 +49,7 @@ func handleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (
 		return events.APIGatewayProxyResponse{
 			Body:       "Not Found",
 			StatusCode: http.StatusNotFound,
+			Headers:    headers,
 		}, nil
 	}
 }
@@ -137,6 +143,7 @@ func getQuestions(ctx context.Context, request events.APIGatewayProxyRequest) (e
 	return events.APIGatewayProxyResponse{
 		Body:       string(questionsJSON),
 		StatusCode: http.StatusOK,
+		Headers:    map[string]string{"Access-Control-Allow-Origin": "*"},
 	}, nil
 }
 
