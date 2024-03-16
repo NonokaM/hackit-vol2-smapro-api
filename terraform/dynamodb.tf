@@ -16,11 +16,11 @@ resource "aws_dynamodb_table" "hackit_table" {
   }
 
   global_secondary_index {
-    name               = "difficulty-index"
-    hash_key           = "difficulty"
-    range_key          = "id"
-    read_capacity      = 5
-    write_capacity     = 5
-    projection_type    = "ALL"
+    name            = "difficulty-index"
+    hash_key        = "difficulty"
+    range_key       = "id"
+    read_capacity   = 5
+    write_capacity  = 5
+    projection_type = "ALL"
   }
 }
