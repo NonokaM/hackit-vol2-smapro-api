@@ -47,3 +47,7 @@ APIのレスポンスはJSON形式で提供されます。
     },
 ]
 ```
+
+
+### AWS構成図
+![image](https://github.com/NonokaM/hackit-vol2-smapro-api/assets/106381541/7cce3e92-1a89-4338-a668-de3f9a0f422c)
